@@ -3,16 +3,58 @@ package main
 import (
 	"fmt"
 	"math/rand"
+	"prj-go/domain"
+	"strconv"
 	"time"
 )
 
-const totalPoints = 50
+const (
+	totalPoints       = 50
+	pointsPerQuestion = 50
+)
+
+var id uint64 = 1
 
 func main() {
 	fmt.Println("Вітаємо у грі MATHCORE!")
 	time.Sleep(1 * time.Second)
 
-	for i := 5; i > 0; i-- {
+	var users []domain.User
+
+	for {
+		menu()
+
+		point := ""
+		fmt.Scan(&point)
+
+		switch point {
+		case "1":
+			u := play()
+			users = append(users, u)
+		case "2":
+			for i, user := range users {
+				fmt.Printf(
+					"i: %v, id: %v, name: %s, time: %v\n",
+					i, user.Id, user.Name, user.Time,
+				)
+			}
+		case "3":
+			return
+		default:
+			fmt.Println("Не коректний вибір 0_о")
+		}
+	}
+
+}
+
+func menu() {
+	fmt.Println("1. Почати гру")
+	fmt.Println("2. Переглянути рейтинг")
+	fmt.Println("3. Вийти")
+}
+
+func play() domain.User {
+	for i := 3; i > 0; i-- {
 		fmt.Println(i)
 		time.Sleep(1 * time.Second)
 	}
@@ -22,13 +64,44 @@ func main() {
 	for myPoints < totalPoints {
 		x, y := rand.Intn(100), rand.Intn(100)
 		res := x + y
-		fmt.Println(x, "+", y, "=")
 		fmt.Printf("%v + %v = ", x, y)
 
 		ans := ""
 		fmt.Scan(&ans)
-		if ans == res {
 
+		ansInt, err := strconv.Atoi(ans)
+		if err != nil {
+			fmt.Println("Спробуй ще!")
+		} else {
+			if ansInt == res {
+				myPoints += pointsPerQuestion
+				fmt.Printf(
+					"Чудово, ти зібрав(ла) %v!\nЗалишилось зібрати %v!\n",
+					myPoints, totalPoints-myPoints,
+				)
+			} else {
+				fmt.Println("Пощастить наступного разу Т_Т")
+			}
 		}
 	}
+	finish := time.Now()
+	timeSpent := finish.Sub(start)
+	fmt.Printf("Вітаємо, ти вправся за %v!\n Введіть своє ім'я: ", timeSpent)
+
+	name := ""
+	fmt.Scan(&name)
+
+	// var user domain.User
+	// user.Id = id
+	// user.Name = name
+	// user.Time = timeSpent
+
+	user := domain.User{
+		Id:   id,
+		Name: name,
+		Time: timeSpent,
+	}
+	id++
+
+	return user
 }

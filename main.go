@@ -1,9 +1,12 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"math/rand"
+	"os"
 	"prj-go/domain"
+	"sort"
 	"strconv"
 	"time"
 )
@@ -19,7 +22,12 @@ func main() {
 	fmt.Println("Вітаємо у грі MATHCORE!")
 	time.Sleep(1 * time.Second)
 
-	var users []domain.User
+	users := getUsers()
+	for _, user := range users {
+		if user.Id >= id {
+			id = user.Id + 1
+		}
+	}
 
 	for {
 		menu()
@@ -30,8 +38,11 @@ func main() {
 		switch point {
 		case "1":
 			u := play()
+			users := getUsers()
 			users = append(users, u)
+			sortAndSave(users)
 		case "2":
+			users := getUsers()
 			for i, user := range users {
 				fmt.Printf(
 					"i: %v, id: %v, name: %s, time: %v\n",
@@ -44,7 +55,6 @@ func main() {
 			fmt.Println("Не коректний вибір 0_о")
 		}
 	}
-
 }
 
 func menu() {
@@ -104,4 +114,76 @@ func play() domain.User {
 	id++
 
 	return user
+}
+
+func sortAndSave(users []domain.User) {
+	sort.SliceStable(users, func(i, j int) bool {
+		return users[i].Time < users[j].Time
+	})
+
+	file, err := os.OpenFile(
+		"users.json",
+		os.O_RDWR|os.O_CREATE|os.O_TRUNC,
+		0755,
+	)
+	if err != nil {
+		fmt.Printf("Error: %s", err)
+		return
+	}
+
+	defer func(file *os.File) {
+		err = file.Close()
+		if err != nil {
+			fmt.Printf("Error: %s", err)
+		}
+	}(file)
+
+	encoder := json.NewEncoder(file)
+	err = encoder.Encode(users)
+	if err != nil {
+		fmt.Printf("Error: %s", err)
+		return
+	}
+}
+
+func getUsers() []domain.User {
+	var users []domain.User
+
+	info, err := os.Stat("users.json")
+	if err != nil {
+		if !os.IsNotExist(err) {
+			fmt.Printf("Error: %s", err)
+			return nil
+		}
+		_, err := os.Create("users.json")
+		if err != nil {
+			fmt.Printf("Error: %s", err)
+			return nil
+		}
+		return nil
+	}
+
+	if info.Size() != 0 {
+		file, err := os.Open("users.json")
+		if err != nil {
+			fmt.Printf("Error: %s", err)
+			return nil
+		}
+
+		defer func(file *os.File) {
+			err = file.Close()
+			if err != nil {
+				fmt.Printf("Error: %s", err)
+			}
+		}(file)
+
+		decoder := json.NewDecoder(file)
+		err = decoder.Decode(&users)
+		if err != nil {
+			fmt.Printf("Error: %s", err)
+			return nil
+		}
+	}
+
+	return users
 }
